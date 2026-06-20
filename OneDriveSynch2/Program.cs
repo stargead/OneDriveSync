@@ -7,7 +7,7 @@ using Spectre.Console;
 
 // Exit codes: 0=ok, 1=config error, 2=auth error, 3=permission denied,
 // 4=dir not found, 5=unexpected, 130=cancelled.
-
+const string version = "2.1";
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
 {
