@@ -151,6 +151,7 @@ public sealed class OneDrivePollerService : IAsyncDisposable
         string relativePath, DriveItem item, CancellationToken cancellationToken)
     {
         var localPath = LocalPathFor(relativePath);
+        if (IsExcluded(localPath)) return;
         var remoteModified = item.LastModifiedDateTime?.UtcDateTime;
 
         if (File.Exists(localPath) && remoteModified is not null)
@@ -237,6 +238,7 @@ public sealed class OneDrivePollerService : IAsyncDisposable
     private void DeleteLocalFile(string relativePath)
     {
         var localPath = LocalPathFor(relativePath);
+        if (IsExcluded(localPath)) return;
         if (!File.Exists(localPath)) return;
 
         File.Delete(localPath);
@@ -257,6 +259,7 @@ public sealed class OneDrivePollerService : IAsyncDisposable
     {
         var oldLocalPath = LocalPathFor(oldRelativePath);
         var newLocalPath = LocalPathFor(newRelativePath);
+        if (IsExcluded(oldLocalPath) || IsExcluded(newLocalPath)) return;
 
         Directory.CreateDirectory(Path.GetDirectoryName(newLocalPath)!);
 
@@ -345,6 +348,17 @@ public sealed class OneDrivePollerService : IAsyncDisposable
     }
 
     // ---- Path helpers -----------------------------------------------------
+
+    private bool IsExcluded(string localPath)
+    {
+        foreach (var excluded in _options.ExcludePathList)
+        {
+            if (localPath.StartsWith(excluded, StringComparison.OrdinalIgnoreCase) &&
+                (localPath.Length == excluded.Length || localPath[excluded.Length] == Path.DirectorySeparatorChar))
+                return true;
+        }
+        return false;
+    }
 
     private string LocalPathFor(string relativePath) =>
         Path.Combine(_options.LocalPath, relativePath.Replace('/', Path.DirectorySeparatorChar));

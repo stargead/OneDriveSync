@@ -111,11 +111,17 @@ public sealed class LocalWatcherService : IAsyncDisposable
 
     // ---- Event handlers ---------------------------------------------------
 
-    private void OnCreated(object sender, FileSystemEventArgs e) =>
-        Debounce(new LocalFileEvent(LocalEventType.Created, e.FullPath));
+    private void OnCreated(object sender, FileSystemEventArgs e)
+    {
+        if (!IsExcluded(e.FullPath))
+            Debounce(new LocalFileEvent(LocalEventType.Created, e.FullPath));
+    }
 
-    private void OnChanged(object sender, FileSystemEventArgs e) =>
-        Debounce(new LocalFileEvent(LocalEventType.Changed, e.FullPath));
+    private void OnChanged(object sender, FileSystemEventArgs e)
+    {
+        if (!IsExcluded(e.FullPath))
+            Debounce(new LocalFileEvent(LocalEventType.Changed, e.FullPath));
+    }
 
     private void OnRenamed(object sender, RenamedEventArgs e)
     {
@@ -123,13 +129,15 @@ public sealed class LocalWatcherService : IAsyncDisposable
         // be applied as a single PATCH/move.
         CancelDebounce(e.OldFullPath);
         CancelDebounce(e.FullPath);
-        _channel.Writer.TryWrite(new LocalFileEvent(LocalEventType.Renamed, e.FullPath, e.OldFullPath));
+        if (!IsExcluded(e.OldFullPath) && !IsExcluded(e.FullPath))
+            _channel.Writer.TryWrite(new LocalFileEvent(LocalEventType.Renamed, e.FullPath, e.OldFullPath));
     }
 
     private void OnDeleted(object sender, FileSystemEventArgs e)
     {
         CancelDebounce(e.FullPath);
-        _channel.Writer.TryWrite(new LocalFileEvent(LocalEventType.Deleted, e.FullPath));
+        if (!IsExcluded(e.FullPath))
+            _channel.Writer.TryWrite(new LocalFileEvent(LocalEventType.Deleted, e.FullPath));
     }
 
     private void OnError(object sender, ErrorEventArgs e) =>
@@ -411,6 +419,17 @@ public sealed class LocalWatcherService : IAsyncDisposable
     }
 
     // ---- Path helpers -----------------------------------------------------
+
+    private bool IsExcluded(string path)
+    {
+        foreach (var excluded in _options.ExcludePathList)
+        {
+            if (path.StartsWith(excluded, StringComparison.OrdinalIgnoreCase) &&
+                (path.Length == excluded.Length || path[excluded.Length] == Path.DirectorySeparatorChar))
+                return true;
+        }
+        return false;
+    }
 
     private string Relative(string localPath) =>
         ToRemoteRelative(Path.GetRelativePath(_options.LocalPath, localPath));

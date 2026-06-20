@@ -25,6 +25,22 @@ public sealed class SyncOptions
     /// <summary>Seconds between OneDrive polling cycles.</summary>
     public int OneDrivePollIntervalSeconds { get; init; } = 60;
 
+    /// <summary>
+    /// Comma-separated list of local paths to exclude from sync.
+    /// Each entry may be absolute or relative to <see cref="LocalPath"/>.
+    /// Files inside these paths (and their sub-directories) are ignored by both watchers.
+    /// </summary>
+    public string ExcludePath { get; init; } = string.Empty;
+
+    /// <summary>Parsed, absolute-normalised exclude paths derived from <see cref="ExcludePath"/>.</summary>
+    public IReadOnlyList<string> ExcludePathList =>
+        string.IsNullOrWhiteSpace(ExcludePath)
+            ? Array.Empty<string>()
+            : ExcludePath
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(p => Path.IsPathRooted(p) ? p : Path.GetFullPath(p, LocalPath))
+                .ToList();
+
     /// <summary>Microsoft Graph scopes required for file sync.</summary>
     public static readonly string[] Scopes = { "Files.ReadWrite", "User.Read", "offline_access" };
 

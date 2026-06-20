@@ -117,6 +117,8 @@ static SyncOptions BuildOptions(string[] args)
     if (!string.IsNullOrWhiteSpace(intervalRaw) && int.TryParse(intervalRaw, out var parsedInterval))
         interval = parsedInterval;
 
+    var excludePath = parsed.GetValueOrDefault("exclude") ?? config["Sync:ExcludePath"] ?? string.Empty;
+
     return new SyncOptions
     {
         ClientId = clientId,
@@ -124,6 +126,7 @@ static SyncOptions BuildOptions(string[] args)
         LocalPath = localPath,
         OneDrivePath = remotePath,
         OneDrivePollIntervalSeconds = interval,
+        ExcludePath = excludePath,
     };
 }
 
@@ -137,6 +140,7 @@ static Dictionary<string, string> ParseArgs(string[] args)
         ["--clientid"] = "clientid",
         ["--tenant"] = "tenant",
         ["--interval"] = "interval",
+        ["--exclude"] = "exclude",
     };
 
     for (var i = 0; i < args.Length; i++)
@@ -162,5 +166,6 @@ static void PrintHelp()
     AnsiConsole.WriteLine("  --clientid <guid>    Azure AD application (client) ID.");
     AnsiConsole.WriteLine("  --tenant <id>        Azure AD tenant (default: consumers).");
     AnsiConsole.WriteLine("  --interval <sec>     OneDrive poll interval in seconds (default: 60).");
+    AnsiConsole.WriteLine("  --exclude <paths>    Comma-separated local paths to exclude from sync.");
     AnsiConsole.WriteLine("  -h, --help           Show this help.");
 }
